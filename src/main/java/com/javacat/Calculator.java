@@ -1,31 +1,14 @@
 package com.javacat;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.Deque;
 import java.util.LinkedList;
 
 public class Calculator {
 
-
     private Deque<Operand> arguments = new LinkedList<>();
     private Deque<Operator> functions = new LinkedList<>();
 
-
-    public static void main(String[] args) throws IOException {
-        Calculator calculator = new Calculator();
-        try (BufferedReader bf = new BufferedReader(new InputStreamReader(System.in))) {
-            String expression = bf.readLine();
-            System.out.println(calculator.calculate(expression));
-        } catch (NumberFormatException e) {
-            System.out.println("Usage: correct arithmetic expression with brackets and basic operations (+-*/) ");
-        }
-
-    }
-
-
-    private String calculate(String expression) {
+    public String calculate(String expression) {
         String result = expression;
         while (true) {
             int a = result.indexOf(')');
@@ -40,11 +23,10 @@ public class Calculator {
                 return result;
             }
         }
-
     }
 
 
-    public void parse(String expressionWithoutBrackets) {
+    private void parse(String expressionWithoutBrackets) {
         Operand operand = new Operand();
         Operator operator;
         operand.add(expressionWithoutBrackets.charAt(0));
@@ -75,7 +57,7 @@ public class Calculator {
     }
 
 
-    private int calc() {
+    private double calc() {
         while (arguments.size() > 1) {
             Operand first = arguments.pollFirst();
             Operand second = arguments.pollFirst();
@@ -104,9 +86,9 @@ public class Calculator {
             } else {
                 arguments.addFirst(first);
             }
-            first.setInt(operator.doOperation(first.getInt(), second.getInt()));
+            first.setValue(operator.doOperation(first.getValue(), second.getValue()));
         }
-        return arguments.pollFirst().getInt();
+        return arguments.pollFirst().getValue();
     }
 
 
@@ -125,25 +107,25 @@ public class Calculator {
             operand.append(c);
         }
 
-        public int getInt() throws NumberFormatException {
-            return Integer.parseInt(operand.toString());
+        public double getValue() {
+            return Double.parseDouble(operand.toString());
         }
 
-        public void setInt(int i) {
-            operand = new StringBuffer(String.valueOf(i));
+        public void setValue(double numericValue) {
+            operand = new StringBuffer(String.valueOf(numericValue));
         }
     }
 
-    interface Operator {
-        public int doOperation(int firstOperand, int secondOperand);
+    private interface Operator {
+        public double doOperation(double firstOperand, double secondOperand);
 
         public OperatorPriority getPriority();
     }
 
-    class Add implements Operator {
+    private class Add implements Operator {
 
         @Override
-        public int doOperation(int firstOperand, int secondOperand) {
+        public double doOperation(double firstOperand, double secondOperand) {
             return firstOperand + secondOperand;
         }
 
@@ -153,9 +135,9 @@ public class Calculator {
         }
     }
 
-    class Distract implements Operator {
+    private class Distract implements Operator {
 
-        public int doOperation(int firstOperand, int secondOperand) {
+        public double doOperation(double firstOperand, double secondOperand) {
             return firstOperand - secondOperand;
         }
 
@@ -165,10 +147,10 @@ public class Calculator {
         }
     }
 
-    class Division implements Operator {
+    private class Division implements Operator {
 
         @Override
-        public int doOperation(int firstOperand, int secondOperand) {
+        public double doOperation(double firstOperand, double secondOperand) {
             return firstOperand / secondOperand;
         }
 
@@ -178,10 +160,10 @@ public class Calculator {
         }
     }
 
-    class Multi implements Operator {
+    private class Multi implements Operator {
 
         @Override
-        public int doOperation(int firstOperand, int secondOperand) {
+        public double doOperation(double firstOperand, double secondOperand) {
             return firstOperand * secondOperand;
         }
 
