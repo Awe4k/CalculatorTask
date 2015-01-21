@@ -1,4 +1,4 @@
-package com.javacat;
+package com.javacat.Operators;
 
 public enum OperatorPriority {
     HIGH, LOW

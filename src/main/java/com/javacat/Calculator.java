@@ -1,31 +1,69 @@
 package com.javacat;
 
+import com.javacat.Operators.Operator;
+import com.javacat.Operators.OperatorPriority;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Deque;
 import java.util.LinkedList;
 
+/*
+  * Калькулятор получает арифметическое выражение и вычисляет результат
+  * Для вычисления не используются популярные алгоритмы (ОПН, сорт. станция)
+  * Алгоритм придумал сам (хотя в некоторых аспектах похож на популярные)
+  * Алгоритм рекурсивно находит самые вложенные скобки и вычисляет в них результат, который используется
+  * для вычисления в следующих скобках
+  *
+ */
 public class Calculator {
 
-    private Deque<Operand> arguments = new LinkedList<>();
-    private Deque<Operator> functions = new LinkedList<>();
+    private final Deque<Operand> arguments = new LinkedList<>();
+    private final Deque<Operator> functions = new LinkedList<>();
 
-    public String calculate(String expression) {
-        String result = expression;
-        while (true) {
-            int a = result.indexOf(')');
 
-            if (a != -1) {
-                String str = result.substring(0, a);
-                int b = str.lastIndexOf('(');
-                result = result.substring(0, b) + calculate(str.substring(b + 1)) + result.substring(a + 1);
-            } else {
-                parse(result);
-                result = String.valueOf(calc());
-                return result;
+    public static void startCalculations() {
+        Calculator calculator = new Calculator();
+        try (BufferedReader bf = new BufferedReader(new InputStreamReader(System.in))) {
+            while (true) {
+                String expression = bf.readLine();
+                if (expression.equals("quit")) {
+                    System.out.printf("Bye!");
+                    return;
+                }
+                System.out.println(calculator.calculate(expression));
             }
+        } catch (IOException io) {
+            System.out.println("I/O issues, see stack trace");
+            io.printStackTrace();
+        } catch (Exception e) {
+            System.out.println("Usage: correct arithmetic expression with brackets and simple operations (+-*/)");
         }
     }
 
+    /*
+     * Работа со скобками
+     */
+    private String calculate(String expression) {
+        String result = expression;
+        int firstClosingBracket;
+        while ((firstClosingBracket = result.indexOf(')')) != -1) {
+            String expressionBeforeFirstClosingBracket = result.substring(0, firstClosingBracket);
+            int lastOpeningBracket = expressionBeforeFirstClosingBracket.lastIndexOf('(');
+            result =
+                    result.substring(0, lastOpeningBracket) +
+                            calculate(expressionBeforeFirstClosingBracket.substring(lastOpeningBracket + 1)) +
+                            result.substring(firstClosingBracket + 1);
+        }
+        parse(result);
+        result = String.valueOf(calc());
+        return result;
+    }
 
+    /*
+     * Парсим выражение без скобок, разбиваем на токены (операторы/операнды)
+     */
     private void parse(String expressionWithoutBrackets) {
         Operand operand = new Operand();
         Operator operator;
@@ -40,7 +78,7 @@ public class Calculator {
             } else {
                 // это условие нужно, чтобы стали возможны конструкции вида 3+-2 (==1)
                 // где -2, например, результат вычисления 3+(1-3)
-                if (operator instanceof Distract) {
+                if (operator == Operator.SUB) {
                     if (checkOperator(expressionWithoutBrackets.charAt(i - 1)) != null) {
                         operand.add(expressionWithoutBrackets.charAt(i));
                         continue;
@@ -56,7 +94,11 @@ public class Calculator {
         }
     }
 
-
+    /*
+     * Имея стеки токенов вычисляем значение вложенного выражения
+     *
+     * Мне не очень нравится как выглядит реализация, хотелось бы переделать
+     */
     private double calc() {
         while (arguments.size() > 1) {
             Operand first = arguments.pollFirst();
@@ -86,21 +128,21 @@ public class Calculator {
             } else {
                 arguments.addFirst(first);
             }
-            first.setValue(operator.doOperation(first.getValue(), second.getValue()));
+            first.setValue(operator.executeOperation(first.getValue(), second.getValue()));
         }
         return arguments.pollFirst().getValue();
     }
 
 
     private Operator checkOperator(char c) {
-        if (c == '+') return new Add();
-        if (c == '-') return new Distract();
-        if (c == '/') return new Division();
-        if (c == '*') return new Multi();
+        if (c == '+') return Operator.ADD;
+        if (c == '-') return Operator.SUB;
+        if (c == '/') return Operator.DIV;
+        if (c == '*') return Operator.MUL;
         return null;
     }
 
-    class Operand {
+    private class Operand {
         StringBuffer operand = new StringBuffer();
 
         public void add(char c) {
@@ -116,61 +158,7 @@ public class Calculator {
         }
     }
 
-    private interface Operator {
-        public double doOperation(double firstOperand, double secondOperand);
-
-        public OperatorPriority getPriority();
-    }
-
-    private class Add implements Operator {
-
-        @Override
-        public double doOperation(double firstOperand, double secondOperand) {
-            return firstOperand + secondOperand;
-        }
-
-        @Override
-        public OperatorPriority getPriority() {
-            return OperatorPriority.LOW;
-        }
-    }
-
-    private class Distract implements Operator {
-
-        public double doOperation(double firstOperand, double secondOperand) {
-            return firstOperand - secondOperand;
-        }
-
-        @Override
-        public OperatorPriority getPriority() {
-            return OperatorPriority.LOW;
-        }
-    }
-
-    private class Division implements Operator {
-
-        @Override
-        public double doOperation(double firstOperand, double secondOperand) {
-            return firstOperand / secondOperand;
-        }
-
-        @Override
-        public OperatorPriority getPriority() {
-            return OperatorPriority.HIGH;
-        }
-    }
-
-    private class Multi implements Operator {
-
-        @Override
-        public double doOperation(double firstOperand, double secondOperand) {
-            return firstOperand * secondOperand;
-        }
-
-        @Override
-        public OperatorPriority getPriority() {
-            return OperatorPriority.HIGH;
-        }
-    }
 
 }
+
+
